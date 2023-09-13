@@ -13,7 +13,7 @@ class Transactions{
         return SHA256(this.fromAddress + this.toAddress + this.amount).toString();
     }
 
-    signTransaction(){
+    signTransaction(signingKey){
         if(signingKey.getPublic('hex') != this.fromAddress){
             throw new Error('You are not authorized to sign for this wallet!!!');
         }
@@ -55,6 +55,15 @@ class Block{
         }
         console.log('Mined Block: ' + this.hash);
     }
+
+    hasValidTransactions(){
+        for(const tx of this.transactions){
+            if(!tx.isValid()){
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 
@@ -86,7 +95,15 @@ class BlockChain{
         ];
     }
 
-    createTransaction(transaction){
+    addTransaction(transaction){
+        if(!transaction.fromAddress || !transaction.toAddress){
+            throw new Error('Transaction must include sender and receiver addresses!!!');
+        }
+
+        if(!transaction.isValid){
+            throw new Error('Cannot add an inavlid transaction to chain!!!');
+        }
+
         this.pendingTransactions.push(transaction);
     }
 
@@ -114,6 +131,10 @@ class BlockChain{
             const previousBlock= this.chain[i-1];
 
             if(currentBlock.hash != currentBlock.calculateHash()){
+                return false;
+            }
+
+            if(!currentBlock.hasValidTransactions()){
                 return false;
             }
 
